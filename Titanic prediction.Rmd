@@ -1,0 +1,260 @@
+##### Setup
+
+In this problem set you will need, at minimum, the following R packages.
+
+```{r Setup, message=FALSE}
+# Load standard libraries
+library(tidyverse)
+library(dplyr)
+library(MASS) # Modern applied statistics functions
+library(fst)
+library(titanic)
+library(bayesQR)
+
+titanic_dataset<-read.csv(file = '/Users/leechenhsin/Desktop/study@USA/07_UW_School/IMT573/titanic.csv')
+
+
+```
+
+ The Titanic text file contains data about the survival of passengers aboard the Titanic. Table \ref{tab:data} contains a description of this data. 
+\vspace{.1in}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|l|l|}
+\hline
+{\bf Variable} & {\bf Description} \\ \hline \hline
+pclass      &    Passenger Class \\
+            &    (1 = 1st; 2 = 2nd; 3 = 3rd) \\ \hline
+survived    &    Survival \\
+            &    (0 = No; 1 = Yes) \\ \hline
+name        &    Name \\ \hline
+sex         &    Sex \\ \hline
+age         &    Age \\ \hline
+sibsp       &    Number of Siblings/Spouses Aboard \\ \hline
+parch       &    Number of Parents/Children Aboard \\ \hline 
+ticket      &    Ticket Number \\ \hline
+fare        &    Passenger Fare \\ \hline
+cabin       &    Cabin \\ \hline
+embarked    &    Port of Embarkation \\
+            &    (C = Cherbourg; Q = Queenstown; S = Southampton) \\ \hline
+boat        &    Lifeboat \\ \hline
+body        &    Body Identification Number \\ \hline
+home.dest   &    Home/Destination \\
+\hline
+\end{tabular}
+\caption{Description of variables in the Titanic Dataset}
+\label{tab:data}
+\end{table}
+\vspace{.1in}
+
+\newpage
+
+
+\textbf{Problem 1: Part a}
+
+1). Load the data and do a quick sanity check. That is, inspect the data using your usual inspect data functions to get a sense of how the variables are encoded and what values they typically take on.
+```{r}
+data(Titanic)
+summary(Titanic)
+head(titanic_dataset)
+
+
+```
+
+
+2). Are there missing values for any of the important variables? Find and list those. Based on missing values, reflect whether they are going useful for downstream modeling tasks.
+```{r}
+#Yes, there are missing values in the column of age,fare,body
+
+summary(titanic_dataset)
+
+#the reason of why the body is missing might because that if someone is survived,
+#then his/her body may not be found.Besides, if someone is not survived, then
+#his/her body may also not be found. 
+
+```
+
+
+\textbf{Problem 1: Part b (Categorical output)}
+
+1). Our goal is to determine the survival of passengers that takes into account the socioeconomic status of the passengers. What model would you fit? Explain the choice of your model and then fit the model.
+```{r}
+#I would utilize simple liner regression model to determine the survival of
+#passengers since this model can take into account of the relation between
+#pclass and whether survived together.
+
+model <- glm(survived ~ pclass, data =titanic_dataset,family=binomial)
+summary(model)
+
+
+#according to the model, since the p-value of the fare is less than 0.05
+#so it shows a regression between pclass and survived.
+
+
+```
+
+
+2). What might you conclude based on this model about the probability of survival for lower class passengers?
+```{r}
+#According to the simple liner regression model,it shows a liner regression
+#model in y=-0.18127x+0.79797
+
+#As a result, a lower class passengers has a higher probability of survival   
+
+b2<-ggplot(titanic_dataset ,aes(pclass,fill=survived))+
+geom_bar(aes(fill=factor(survived)),position = "fill")+
+  scale_fill_brewer(palette = "Set1")+
+  ylab("survival")+
+  ggtitle("survival by Pclass")
+
+b2
+
+```
+
+
+3). Create a new variable child, that is 1 if the passenger was younger than 14 years old.  Check to make sure you have the new variable added in your dataframe.
+```{r}
+titanic_dataset$child <-ifelse(titanic_dataset$age<14, "1", "0")
+
+```
+
+
+4). Now you are curious to know whether men or women, old or young, or people of different passenger classes have larger chances of survival. Build an appropriate model to answer this curiosity. Explain the choice of your model. Interpret results
+```{r}
+
+model4.1 <- glm(survived ~ sex, data =titanic_dataset,family=binomial)
+summary(model4.1)
+
+a1<-ggplot(titanic_dataset ,aes(sex,fill=survived))+
+geom_bar(aes(fill=factor(survived)),position = "fill")+
+  scale_fill_brewer(palette = "Set1")+
+  ylab("survival")+
+  ggtitle("survival by Pclass")
+
+a1
+
+#in the chart, it's clear that the survival of women is higher than men  
+
+model4.2 <- glm(survived ~ age, data =titanic_dataset,family=binomial)
+summary(model4.2)
+
+a2<-ggplot(titanic_dataset ,aes(age,fill=survived))+
+geom_bar(aes(fill=factor(survived)),position = "fill")+
+  scale_fill_brewer(palette = "Set1")+
+  ylab("survival")+
+  ggtitle("survival by Pclass")
+
+a2
+
+#in the chart, it's clear that the survival of the oldest and the youngest
+#is higher
+
+model4.3 <- glm(survived ~ pclass, data =titanic_dataset,family=binomial)
+summary(model4.3)
+
+a3<-ggplot(titanic_dataset ,aes(pclass,fill=survived))+
+  geom_bar(aes(fill=factor(survived)),position = "fill")+
+  scale_fill_brewer(palette = "Set1")+
+  ylab("survival")+
+  ggtitle("survival by Pclass")
+
+a3
+
+#in the chart, it's clear that the survival of lower class is higher than others
+
+```
+
+
+
+\textbf{Problem 1: Part c - Predictions with a categorical output}
+Now let's try to do some predictions with the Titanic data. Our goal is to predict the survival of passengers by considering only the socioeconomic status of the passenger. 
+
+1). After loading the data, split your data into a \emph{training} and \emph{test} set based on an 80-20 split. In other words, 80\% of the observations will be in the training set and 20\% will be in the test set. Remember to set the random seed.
+```{r}
+library(simEd)
+set.seed(1)
+
+train_row <- sample(1309,1309*0.8)
+train <- titanic_dataset[train_row, ]
+test <- titanic_dataset[-train_row, ]
+
+
+```
+
+
+2). Fit the model described above (that is in Problem 1 (c), that only takes into account socio-economic status).
+```{r}
+
+model5 <- glm(survived ~ pclass, data =train,family=binomial)
+summary(model5)
+
+#according to the model, since the p-value of the pclass is less than 0.05
+#so it shows a regression between pclass and survived
+
+```
+
+
+3). Predict the survival of passengers for each observation in your test set using the model fit that you just fitted. Save these predictions as yhat.
+```{r}
+library(broom)
+library(dplyr)
+
+
+titanic_dataset_new <- augment(model5,newdata=test,type.predict = 'response')%>%
+  mutate(survive_predict=round(.fitted))
+
+
+```
+
+
+4). Use a threshold of 0.5 to classify predictions. What is the number of false positives on the test data? Interpret this in your own words. _Hint: You need to show confusion matrix_
+```{r}
+#remotes::install_version("SDMTools","1.1-221")
+
+install.packages('SDMTools', repos = "http://cran.us.r-project.org")
+
+library(SDMTools)
+
+confMatrixNew<-confusion.matrix(titanic_dataset_new$survived,titanic_dataset_new$survive_predict,threshold = 0.5)
+confMatrixNew
+
+  
+#number of false = 29+62=91
+#number of positive =140+31=171
+
+
+df <- data.frame(TRUEVALUE=c(1, 0, 0,1,0, 1, 1, 0,0,1),
+                 M1=c(1, 1, 0, 1, 0, 1, 0, 1, 0, 1),
+                 M2=c(0, 0, 0, 1, 0, 0, 1, 0, 0, 0))
+df
+
+confMatrixNew<-confusion.matrix(df$TRUEVALUE,df$M1)
+confMatrixNew
+
+
+confMatrixNew2<-confusion.matrix(df$TRUEVALUE,df$M2)
+confMatrixNew2
+
+
+```
+
+
+5). Pick a different threshold to classify predictions and interpret your results again. Did you have a rationale when picking a different threshold? Did you see any change? Reflect on your results.
+```{r}
+library(dplyr)
+
+titanic_dataset_new$survive_predict<-if(titanic_dataset_new$.fitted > 0.4){titanic_dataset_new$survive_predict=1}else{titanic_dataset_new$survive_predict=0}
+
+
+# Create confusion matrix
+confMatrixNew2<-confusion.matrix(titanic_dataset_new$survived,titanic_dataset_new$survive_predict)
+confMatrixNew2
+  
+#number of false =0+169=169
+#number of positive =0+93=93
+
+#when the threshold is decreased, the number of false increase.
+#As a result, the accuracy of the matrix decreases. 
+
+```
