@@ -1,0 +1,140 @@
+---
+title: 'IMT 573: Problem Set 8 - Regression Part III'
+author: "Your Name Here"
+date: 'Due: Tuesday, Dec 7, 2021'
+output:
+  pdf_document: default
+  html_document:
+    df_print: paged
+---
+
+<!-- This syntax can be used to add comments that are ignored during knitting process. -->
+
+##### Collaborators: <!-- BE SURE TO LIST ALL COLLABORATORS HERE! -->
+
+##### Instructions:
+
+Before beginning this assignment, please ensure you have access to R and RStudio. 
+
+1. Download the `problemset8.Rmd` file from Canvas. Open `problemset8.Rmd` in RStudio and supply your solutions to the assignment by editing `problemset8.Rmd`. 
+
+
+2. Replace the "Insert Your Name Here" text in the `author:` field with your own full name. Any collaborators must be listed on the top of your assignment. 
+
+4. All materials and resources that you use (with the exception of lecture slides) must be appropriately referenced within your assignment. In particular, note that Stack Overflow is licenses as Creative Commons (CC-BY-SA). This means you have to attribute any code you refer from SO.
+
+5. Partial credit will be awarded for each question for which a serious attempt at finding an answer has been shown. But please **DO NOT** submit pages and pages of hard-to-read code and attempts that is impossible to grade. That is, avoid redundancy. Remember that one of the key goals of a data scientist is to produce coherent reports that others can easily follow.  Students are \emph{strongly} encouraged to attempt each question and to document their reasoning process even if they cannot find the correct answer. If you would like to include R code to show this process, but it does not run without errors you can do so with the `eval=FALSE` option as follows:
+
+```{r example chunk with a bug, eval=FALSE}
+a + b # these object dont' exist 
+# if you run this on its own it with give an error
+```
+
+6. When you have completed the assignment and have **checked** that your code both runs in the Console and knits correctly when you click `Knit PDF`, rename the R Markdown file to `ps8_YourLastName_YourFirstName.rmd`, knit a PDF and submit the PDF file on Canvas.
+
+7.  Collaboration is often fun and useful, but each student must turn in an individual write-up in their own words as well as code/work that is their own.  Regardless of whether you work with others, what you turn in must be your own work; this includes code and interpretation of results. The names of all collaborators must be listed on each assignment. Do not copy-and-paste from other students' responses or code.
+
+##### Setup
+
+In this problem set you will need, at minimum, the following R packages.
+
+```{r Setup, message=FALSE}
+# Load standard libraries
+library(tidyverse)
+library(dplyr)
+library(MASS) # Modern applied statistics functions
+library(fst)
+library(titanic)
+library(bayesQR)
+
+data("Churn")
+
+# https://zhuanlan.zhihu.com/p/27166007
+# https://zhuanlan.zhihu.com/p/63983446
+
+# https://www.r-bloggers.com/2018/01/churn-analysis-part-1-model-selection/
+```
+
+\textbf{Problem 1}
+
+\noindent \textbf{Data:} In this problem set we will use the Titanic dataset. The Titanic text file contains data about the survival of passengers aboard the Titanic. Table \ref{tab:data} contains a description of this data. 
+\vspace{.1in}
+
+\begin{table}[ht]
+\centering
+\begin{tabular}{|l|l|}
+\hline
+{\bf Variable} & {\bf Description} \\ \hline \hline
+pclass      &    Passenger Class \\
+            &    (1 = 1st; 2 = 2nd; 3 = 3rd) \\ \hline
+survived    &    Survival \\
+            &    (0 = No; 1 = Yes) \\ \hline
+name        &    Name \\ \hline
+sex         &    Sex \\ \hline
+age         &    Age \\ \hline
+sibsp       &    Number of Siblings/Spouses Aboard \\ \hline
+parch       &    Number of Parents/Children Aboard \\ \hline 
+ticket      &    Ticket Number \\ \hline
+fare        &    Passenger Fare \\ \hline
+cabin       &    Cabin \\ \hline
+embarked    &    Port of Embarkation \\
+            &    (C = Cherbourg; Q = Queenstown; S = Southampton) \\ \hline
+boat        &    Lifeboat \\ \hline
+body        &    Body Identification Number \\ \hline
+home.dest   &    Home/Destination \\
+\hline
+\end{tabular}
+\caption{Description of variables in the Titanic Dataset}
+\label{tab:data}
+\end{table}
+\vspace{.1in}
+
+\newpage
+
+
+\textbf{Problem 1: Part a}
+
+1). Load the data and do a quick sanity check. That is, inspect the data using your usual inspect data functions to get a sense of how the variables are encoded and what values they typically take on.
+
+
+2). Are there missing values for any of the important variables? Find and list those. Based on missing values, reflect whether they are going useful for downstream modeling tasks.
+
+
+\textbf{Problem 1: Part b (Categorical output)}
+
+1). Our goal is to determine the survival of passengers that takes into account the socioeconomic status of the passengers. What model would you fit? Explain the choice of your model and then fit the model.
+
+2). What might you conclude based on this model about the probability of survival for lower class passengers?
+
+3). Create a new variable child, that is 1 if the passenger was youger than 14 years old.  Check to make sure you have the new variable added in your dataframe.
+
+4). Now you are curious to know whether men or women, old or young, or people of different passenger classes have larger chances of survival. Build an appropriate model to answer this curiosity. Explain the choice of your model. Interpret results
+
+
+\textbf{Problem 1: Part c - Predictions with a categorical output}
+Now let's try to do some predictions with the Titanic data. Our goal is to predict the survival of passengers by considering only the socioeconomic status of the passenger. 
+
+1). After loading the data, split your data into a \emph{training} and \emph{test} set based on an 80-20 split. In other words, 80\% of the observations will be in the training set and 20\% will be in the test set. Remember to set the random seed.
+
+2). Fit the model described above (that is in Problem 1 (c), that only takes into account socio-economic status).
+
+3). Predict the survival of passengers for each observation in your test set using the model fit that you just fitted. Save these predictions as yhat.
+
+4). Use a threshold of 0.5 to classify predictions. What is the number of false positives on the test data? Interpret this in your own words. _Hint: You need to show confusion matrix_
+
+5). Pick a different threshold to classify predictions and interpret your results again. Did you have a rationale when picking a different threshold? Did you see any change? Reflect on your results.
+
+\textbf{Problem 2: Customer Churn data}
+In this problem, you will work with the churn dataset. Documentation of the dataset can be found here: https://www.rdocumentation.org/packages/bayesQR/versions/2.3/topics/Churn
+
+The dataset is random sample from all active customers  (at the end of June 2006) of a European financial services company. The data captures the churn behavior of the customers in the period from July 1st until December 31th 2006. Here a churned customer is defined as someone who closed all his/her bank accounts with the company. 
+
+1). Read and inspect the data. _Hint: the file is an fst fast-storage format file. Check your regression lab to figure out how you can read this file_
+
+2). Describe the data and variables that are part of the churn dataset.
+
+3). Considering this data in context, what is the response variable of interest?
+
+4). Our goal is to determine customer churn. Which variables do you think are the most important ones to describe customer churn? How should those be related to the churn? Interpret your results.
+
+
